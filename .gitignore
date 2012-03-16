@@ -3,3 +3,5 @@
 .Rdata 
 .RData*
 .DS_Store
+*.tmproj
+*.Rproj
