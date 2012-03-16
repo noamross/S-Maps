@@ -1,0 +1,12 @@
+Package: smap
+Title: Nonlinear forecasting and dynamical system analysis
+Description: smap is a set of tools for analyzing time-series data and
+  forcasting into the future.  It is based on the methods described in
+  Sugihara (1994)
+URL: http://www.noamross.net
+Version: 0.1
+Depends: R (>= 2.11.0), yaImpute, lpSolve, lpSolveAPI
+Maintainer: Noam Ross <noam.ross@gmail.com>
+Author: Noam Ross <noam.ross@gmail.com>
+License: GPL
+                  
