@@ -294,13 +294,11 @@ poincaresec <- function(timeseries, psvar, psval, dir="both") {
   return(pcsec)
 }
 
-weightmat <- function(embedding, theta, plot=TRUE) {
+pointsused <- function(embedding, theta, threshold=0.95) {
   weights1 <- exp(-embedding$distmat* theta /embedding$distscale)
   diag(weights1) <- 0
   weights <- aaply(weights1, 1, function(z) z/sum(z))
-  mat <- aaply(weights, 1, function(z) sort(z, decreasing=TRUE))
-  plot(0,0, pch="", xlim=c(0, 50), ylim=c(0, max(mat)))
-  a_ply(mat, 1, function(z) lines(z, pch=16, cex=0.4, col=col.alpha("slateblue", 0.5)))
+  mat <- mean(aaply(weights, 1, function(z) which(cumsum(sort(z, decreasing=TRUE)) > threshold, useNames=FALSE)[1] - 1))
   return(mat)
 }
 

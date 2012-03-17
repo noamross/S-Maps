@@ -7,11 +7,11 @@
 source('R/smap_functions.R')  #This will load more libraries that you actually need.
 
 #Create a list of Ricker time series of 500 points, cutting off the initial values
-rickerparms <- expand.grid(a=c(0.5,1,2,3,4), z=c(0.001, 0.005, 0.01, 0.05, 0.1))
+rickerparms <- expand.grid(a=seq(0.5,1,2,3,4), z=c(0.001, 0.005, 0.01, 0.05, 0.1))
 initial = 0.8
 nsteps=1000
-ricks <- alply(rickerparms, 1, function(z) time.series(ricker.series, initial, nsteps, parms=list(a=z[,"a"], z=z[,"z"])), .progress="text")
-ricks <- llply(ricks, function(z) ts(z[501:1000]))
+ricks <- alply(rickerparms, 1, function(z) time.series(ricker.series, initial, nsteps, parms=list(a=z[,"a"], z=z[,"z"])), .parallel=TRUE)
+ricks <- llply(ricks, function(z) ts(z[980:1000]))
 #Plot these outputs
 par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 l_ply(1:25, function(z) plot(1:500, ricks[[z]], type="l", col="slateblue", ylim=c(0,7),yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n"))
@@ -40,12 +40,13 @@ trophs <- alply(1:25, 1, function(z) {
   forceC <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
   forceP <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
   lsoda(y=c(R=0.5, C=0.4, P=0.8), times=times, func=troph3s.func, parms=replace(parms, c("K", "sd"), c(Ksvals[z], stochs[z])))
-}, .progress="text")
+}, .parallel=TRUE)
 
 #Plot the 3-species model attractors
 par(mfrow=c(5,5), mar=c(0,0,0,0))
+citation
 l_ply(trophs, function(z) scatterplot3d(z[,2:4], type="l", color=col.alpha("black", alpha=0.3), axis=FALSE, mar=c(0,0,0,0), box=FALSE, xlim=c(0,1), ylim=c(0,1), zlim=c(0,1)))
-?#Extract independent points and plot
+#Extract independent points and plot
 mut.lags <- laply(trophs, function(z) firstminmut(z[,4]))
 trophps <- alply(1:25, 1, function(z) ts(trophs[[z]][(101:600)*mut.lags[z],4]))
 par(mfrow=c(5,5), mar=c(0.5,0.5,0.5,0.5))
@@ -58,16 +59,16 @@ l_ply(trophs, function(z) scatterplot3d(z[(101:600)*mut.lags[z],2:4], type="l", 
 #Save the original time series and remove from workspace for memory, along with some other big things
 save(trophs, file="trophs.R")
 rm(trophs, randC, randP, randR, forceC, forceP, forceR)
-load("trophs.R")
+
 
 #Now let's see how each do with dimensionality
 emlist <- expand.grid(E=1:10, ser=1:25)  #make a grid of embeddings in different dimensions
-em.t <- alply(emlist,1, function(z) embed.series(series=trophps[[z[,"ser"]]], dimensions=z[,"E"]), .progress="text") #embed the trophic series
-em.r <- alply(emlist, 1, function(z) embed.series(series=ricks[[z[,"ser"]]], dimensions=z[,"E"]), .progress="text") #embed the ricker series
-t.simfits <- llply(em.t, function(z) simplex.cv(z, allvalues=TRUE), .progress="text")  #Do a simlex projection cv fit to estmate dimensions
-r.simfits <- llply(em.r, function(z) simplex.cv(z, allvalues=TRUE), .progress="text")
-t.simfit.table <- laply(em.t, function(z) simplex.cv(z, allvalues=FALSE), .progress="text")
-r.simfit.table <- laply(em.r, function(z) simplex.cv(z, allvalues=FALSE), .progress="text")
+em.t <- alply(emlist,1, function(z) embed.series(series=trophps[[z[,"ser"]]], dimensions=z[,"E"]), .parallel=TRUE) #embed the trophic series
+em.r <- alply(emlist, 1, function(z) embed.series(series=ricks[[z[,"ser"]]], dimensions=z[,"E"]), .parallel=TRUE) #embed the ricker series
+t.simfits <- llply(em.t, function(z) simplex.cv(z, allvalues=TRUE), .parallel=TRUE)  #Do a simlex projection cv fit to estmate dimensions
+r.simfits <- llply(em.r, function(z) simplex.cv(z, allvalues=TRUE), .parallel=TRUE)
+t.simfit.table <- laply(em.t, function(z) simplex.cv(z, allvalues=FALSE), .parallel=TRUE)
+r.simfit.table <- laply(em.r, function(z) simplex.cv(z, allvalues=FALSE), .parallel=TRUE)
 t.simfit.peaks <- aaply(t.simfit.table, 2, function(z) which.max(z))   #Find the maximum fit across dimensions
 r.simfit.peaks <- aaply(r.simfit.table, 2, function(z) which.max(z))
 par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
@@ -99,14 +100,14 @@ a_ply(troph3s, 1, function(z) plot(t.simfits[[z]]$reals, t.simfits[[z]]$predicti
 #Now let's do S-Map fits
 em.r1 <- em.r[rick1s]
 em.t3 <- em.t[troph3s]
-r.smapfit <- laply(em.r1, fit.smap, .progress="text")
-t.smapfit <- laply(em.t3, fit.smap, .progress="text")
+r.smapfit <- laply(em.r1, fit.smap, .parallel=TRUE)
+t.smapfit <- laply(em.t3, fit.smap, .parallel=TRUE)
 rtheta.seq = 10^(seq(0,3.7, by=0.1))
 rgrd <- expand.grid(ser = 1:25, theta=rtheta.seq)
 ttheta.seq = seq(0,150, by=3)
 tgrd <- expand.grid(ser = 1:25, theta=ttheta.seq)
-rthetacors <- aaply(rgrd, 1, function(z) smap.cv(em.r1[[z[, "ser"]]], theta=z[, "theta"], horizon=1), .progress="text")
-tthetacors <- aaply(tgrd, 1, function(z) smap.cv(em.t3[[z[, "ser"]]], theta=z[, "theta"], horizon=1), .progress="text")
+rthetacors <- aaply(rgrd, 1, function(z) smap.cv(em.r1[[z[, "ser"]]], theta=z[, "theta"], horizon=1), .parallel=TRUE)
+tthetacors <- aaply(tgrd, 1, function(z) smap.cv(em.t3[[z[, "ser"]]], theta=z[, "theta"], horizon=1), .parallel=TRUE)
 par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 r.smapfit[7,2] <- max(rthetacors[7, ])  #This didn't get fit right by the solver
 r.smapfit[7,1] <- rtheta.seq[which.max(rthetacors[7,])]
