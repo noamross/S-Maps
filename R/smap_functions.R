@@ -294,15 +294,21 @@ poincaresec <- function(timeseries, psvar, psval, dir="both") {
   return(pcsec)
 }
 
-pointsused <- function(embedding, theta, threshold=0.95) {
+pointsused <- function(embedding, theta, threshold=0.95, allvalues=FALSE, fraction=FALSE) {
   weights1 <- exp(-embedding$distmat* theta /embedding$distscale)
   diag(weights1) <- 0
   weights <- aaply(weights1, 1, function(z) z/sum(z))
-  mat <- mean(aaply(weights, 1, function(z) which(cumsum(sort(z, decreasing=TRUE)) > threshold, useNames=FALSE)[1] - 1))
-  return(mat)
+  used <- aaply(weights, 1, function(z) which(cumsum(sort(z, decreasing=TRUE)) > threshold, useNames=FALSE)[1])
+  if(fraction) {
+    used <- used/length(used)
+  }
+  if(allvalues) {
+    return(used) 
+  } else {
+    return(mean(used))
+  }
 }
 
 firstminmut <- function(x) which(peaks(-mutual(x, plot=FALSE)))[1]
 firstacc <- function(x)  which(acf(x, plot=FALSE, type="correlation", lag.max=100)$acf < 0)[1] - 1
-
 FNNdim <- function(x) which(FNN(x, dimension=20, tlag=1)[3,]==0)[1]

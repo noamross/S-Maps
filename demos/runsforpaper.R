@@ -2,16 +2,19 @@
 #Noam Ross
 #This script will reproduce all data and plots for the presentation in ECL232, March 16, 2002
 #It requires the 'smap_functions' file to run
+# Note that `.parallel=TRUE` requires a parallel backend.
 
 #Import packages and functions
 source('R/smap_functions.R')  #This will load more libraries that you actually need.
 
+set.seed(0)
+#pdf(paper="a4r")
 #Create a list of Ricker time series of 500 points, cutting off the initial values
-rickerparms <- expand.grid(a=seq(0.5,1,2,3,4), z=c(0.001, 0.005, 0.01, 0.05, 0.1))
+rickerparms <- expand.grid(a=c(0.5,1,2,3,4), z=c(0.001, 0.005, 0.01, 0.05, 0.1))
 initial = 0.8
 nsteps=1000
 ricks <- alply(rickerparms, 1, function(z) time.series(ricker.series, initial, nsteps, parms=list(a=z[,"a"], z=z[,"z"])), .parallel=TRUE)
-ricks <- llply(ricks, function(z) ts(z[980:1000]))
+ricks <- llply(ricks, function(z) ts(z[501:1000]))
 #Plot these outputs
 par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 l_ply(1:25, function(z) plot(1:500, ricks[[z]], type="l", col="slateblue", ylim=c(0,7),yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n"))
@@ -26,25 +29,24 @@ parms = c(xc=0.4, yc=2.009, xp=0.08, yp=2.876, R0=0.16129, C0=0.5,  K=0.997,sd=0
 inits = c(R=0.5, C=0.4, P=0.8)
 Ksvals <- rep(seq(from=0.84, to=0.99, length.out=5), times=5)
 stochs <- rep(c(0.0005, 0.001, 0.005, 0.01, 0.05), each=5)
-randR = cbind(runif(6002,-1,1))
-randC = cbind(runif(6002,-1,1))
-randP = cbind(runif(6002,-1,1))
-forceR <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
-forceC <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
-forceP <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
+randR = cbind(runif(10002,-1,1))
+randC = cbind(runif(10002,-1,1))
+randP = cbind(runif(10002,-1,1))
+forceR <- cmpfun(approxfun(x=0:10001, y=randR, method="linear", rule=2))
+forceC <- cmpfun(approxfun(x=0:10001, y=randR, method="linear", rule=2))
+forceP <- cmpfun(approxfun(x=0:10001, y=randR, method="linear", rule=2))
 trophs <- alply(1:25, 1, function(z) {
-  randR = cbind(runif(6002,-1,1))
-  randC = cbind(runif(6002,-1,1))
-  randP = cbind(runif(6002,-1,1))
-  forceR <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
-  forceC <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
-  forceP <- cmpfun(approxfun(x=0:6001, y=randR, method="linear", rule=2))
+  randR = cbind(runif(10002,-1,1))
+  randC = cbind(runif(10002,-1,1))
+  randP = cbind(runif(10002,-1,1))
+  forceR <- cmpfun(approxfun(x=0:10001, y=randR, method="linear", rule=2))
+  forceC <- cmpfun(approxfun(x=0:10001, y=randR, method="linear", rule=2))
+  forceP <- cmpfun(approxfun(x=0:10001, y=randR, method="linear", rule=2))
   lsoda(y=c(R=0.5, C=0.4, P=0.8), times=times, func=troph3s.func, parms=replace(parms, c("K", "sd"), c(Ksvals[z], stochs[z])))
 }, .parallel=TRUE)
-
+load("trophs.R")
 #Plot the 3-species model attractors
 par(mfrow=c(5,5), mar=c(0,0,0,0))
-citation
 l_ply(trophs, function(z) scatterplot3d(z[,2:4], type="l", color=col.alpha("black", alpha=0.3), axis=FALSE, mar=c(0,0,0,0), box=FALSE, xlim=c(0,1), ylim=c(0,1), zlim=c(0,1)))
 #Extract independent points and plot
 mut.lags <- laply(trophs, function(z) firstminmut(z[,4]))
@@ -108,17 +110,44 @@ ttheta.seq = seq(0,150, by=3)
 tgrd <- expand.grid(ser = 1:25, theta=ttheta.seq)
 rthetacors <- aaply(rgrd, 1, function(z) smap.cv(em.r1[[z[, "ser"]]], theta=z[, "theta"], horizon=1), .parallel=TRUE)
 tthetacors <- aaply(tgrd, 1, function(z) smap.cv(em.t3[[z[, "ser"]]], theta=z[, "theta"], horizon=1), .parallel=TRUE)
-par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
-r.smapfit[7,2] <- max(rthetacors[7, ])  #This didn't get fit right by the solver
-r.smapfit[7,1] <- rtheta.seq[which.max(rthetacors[7,])]
+t.smapfit[20,2] <- max(tthetacors[20, ])  #This didn't get fit right by the solver
+t.smapfit[20,1] <- rtheta.seq[which.max(tthetacors[20,])]
 t.smapfit[25,2] <- max(tthetacors[25, ], na.rm=TRUE)  #This didn't get fit right by the solver
 t.smapfit[25,1] <- ttheta.seq[which.max(tthetacors[25,])]
+t.smapfit[21,2] <- max(tthetacors[21, ], na.rm=TRUE)  #This didn't get fit right by the solver
+t.smapfit[21,1] <- ttheta.seq[which.max(tthetacors[21,])]
+
+r.allpoints <- aaply(1:25, 1, function(z) pointsused(em.r1[[z]],r.smapfit[z,1], allvalues=TRUE, fraction=TRUE), .parallel=TRUE)
+t.allpoints <- aaply(1:25, 1, function(z) pointsused(em.t3[[z]],t.smapfit[z,1], allvalues=TRUE, fraction=TRUE), .parallel=TRUE)
+
+r.points <- rowMeans(r.allpoints)
+t.points <- rowMeans(t.allpoints)
+
+par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 a_ply(1:25, 1, function(z){
   plot(log10(rtheta.seq), rthetacors[z,], type="l",yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", col="slateblue", lwd=4, ylim=c(0,1))
   points(log10(r.smapfit[z,1]), r.smapfit[z,2], , col="blue", pch=16, cex=2)
+  text(3.5, 0.7, paste("Points Used: ", round(100*r.points[z],1),"%",sep=""), adj=c(1, 0.5))
 })
 
 a_ply(1:25, 1, function(z){
-  plot(ttheta.seq, tthetacors[z,], type="l",yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", col="slateblue", lwd=4, ylim=c(0.85,1))
+  plot(ttheta.seq, tthetacors[z,], type="l",yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", col="slateblue", lwd=4, ylim=c(0.5,1))
   points(t.smapfit[z,1], t.smapfit[z,2], , col="blue", pch=16, cex=2)
+  text(140, 0.9, paste("Points Used: ", round(100*t.points[z],1),"%",sep=""), adj=c(1, 0.5))
 })
+
+a_ply(1:25, 1, function(z) {
+  dens(r.allpoints[z, ], adj=1,xlim=c(0,1), ylim=c(0,10), ,yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n")
+  abline(v=r.points[z], col="blue", lty=2)
+  })
+
+a_ply(1:25, 1, function(z) {
+  dens(t.allpoints[z, ], adj=1,xlim=c(0,1), ylim=c(0,10), ,yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n")
+  abline(v=t.points[z], col="blue", lty=2)
+})
+
+par(mfrow=c(1,1))
+plot(log(r.smapfit[,1]), r.points)
+plot((t.smapfit[,1]), t.points)
+
+save.image("paperrun20120318_NR.Rdata")
