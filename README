@@ -3,12 +3,3 @@
 Just some draft code.  Hopefully one day it will be a package.
 
 Right now the only real working things are `R/smap_functions.R` and `demos/runsforpaper`, but these should work just fine.
-
-```r
-dte
-asg
-```
-
-```{r}
-dagsd
-````
