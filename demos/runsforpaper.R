@@ -16,12 +16,18 @@ nsteps=1000
 ricks <- alply(rickerparms, 1, function(z) time.series(ricker.series, initial, nsteps, parms=list(a=z[,"a"], z=z[,"z"])), .parallel=TRUE)
 ricks <- llply(ricks, function(z) ts(z[501:1000]))
 #Plot these outputs
-par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
+par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,2,2))
 l_ply(1:25, function(z) plot(1:500, ricks[[z]], type="l", col="slateblue", ylim=c(0,7),yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n"))
-par(mfrow=c(5,5), mar=c(1.2,2,1.2,1.2))
-a_ply(1:25, 1, function(z) plot(1:500, ricks[[z]], type="l", col="slateblue", yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n"))
-
-
+pdf("fig1ricks.pdf")
+par(mfrow=c(5,5), mar=c(0.5,0.5,0.5,0.5), oma=c(4,0,2,0))
+a_ply(1:25, 1, function(z) {
+  plot(1:500, ricks[[z]], type="l", col="slateblue", yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", xlab="", ylab="")
+  if(z<6) mtext(paste("a =", c(0.5,1,2,3,4)[z]))
+  if(z %%5 ==0) mtext(substitute(theta == y, list(y=c(0.001, 0.005, 0.01, 0.05, 0.1)[z/5])), side=4)
+})
+title("Figure 1: Ricker Model Series", outer=TRUE)
+mtext("Time Steps", 1, outer=TRUE, padj=2)
+dev.off()
 #Create a list of 3-species model attractors
 
 times=seq(from=0, to=10000, by=1)
@@ -75,11 +81,11 @@ t.simfit.peaks <- aaply(t.simfit.table, 2, function(z) which.max(z))   #Find the
 r.simfit.peaks <- aaply(r.simfit.table, 2, function(z) which.max(z))
 par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 a_ply(1:20, 1, function(z) {   #Plot the dimensional fits for the trophic series
-  plot(1:10, t.simfit.table[,z], type="l", ylim=c(0.8,1), xlim=c(1,10), yaxt=if(z%%5 != 1) "n", xaxt="n", col="slateblue", lwd=4)
+  plot(1:10, t.simfit.table[,z], type="l", ylim=c(0,1), xlim=c(1,10), yaxt=if(z%%5 != 1) "n", xaxt="n", col="slateblue", lwd=4)
   points(t.simfit.peaks[z], t.simfit.table[t.simfit.peaks[z], z], col="blue", pch=16, cex=2)
   })
 a_ply(21:25, 1, function(z) {
-  plot(1:10, t.simfit.table[,z], type="l", ylim=c(0.8,1), xlim=c(1,10), yaxt=if(z%%5 != 1) "n", col="slateblue", lwd=4)
+  plot(1:10, t.simfit.table[,z], type="l", ylim=c(0,1), xlim=c(1,10), yaxt=if(z%%5 != 1) "n", col="slateblue", lwd=4)
   points(t.simfit.peaks[z], t.simfit.table[t.simfit.peaks[z], z], col="blue", pch=16, cex=2)
 })
 
@@ -127,15 +133,16 @@ par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 a_ply(1:25, 1, function(z){
   plot(log10(rtheta.seq), rthetacors[z,], type="l",yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", col="slateblue", lwd=4, ylim=c(0,1))
   points(log10(r.smapfit[z,1]), r.smapfit[z,2], , col="blue", pch=16, cex=2)
-  text(3.5, 0.7, paste("Points Used: ", round(100*r.points[z],1),"%",sep=""), adj=c(1, 0.5))
+  text(3.5, 0.7, substitute(bar(P)[list(theta, 0.95)] == y, list(y = round(r.points[z],3))), adj=c(1, 0.5))
 })
-
+pdf(paper="letter")
+par(mfrow=c(5,5), mar=c(1,0.2,0,0.2), oma=c(2,2,1,1))
 a_ply(1:25, 1, function(z){
-  plot(ttheta.seq, tthetacors[z,], type="l",yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", col="slateblue", lwd=4, ylim=c(0.5,1))
-  points(t.smapfit[z,1], t.smapfit[z,2], , col="blue", pch=16, cex=2)
-  text(140, 0.9, paste("Points Used: ", round(100*t.points[z],1),"%",sep=""), adj=c(1, 0.5))
+  plot(ttheta.seq, tthetacors[z,], type="l",yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n", col="slateblue", lwd=4, ylim=c(0.7,1))
+  points(t.smapfit[z,1], t.smapfit[z,2], col="blue", pch=16, cex=2)
+  text(140, 0.9, substitute(bar(P)[list(theta, 0.95)] == y, list(y = round(t.points[z],3))), adj=c(1, 0.5))
 })
-
+dev.off()
 a_ply(1:25, 1, function(z) {
   dens(r.allpoints[z, ], adj=1,xlim=c(0,1), ylim=c(0,10), ,yaxt=if(z%%5 != 1) "n", xaxt=if(z<21) "n")
   abline(v=r.points[z], col="blue", lty=2)
@@ -148,6 +155,6 @@ a_ply(1:25, 1, function(z) {
 
 par(mfrow=c(1,1))
 plot(log(r.smapfit[,1]), r.points)
-plot((t.smapfit[,1]), t.points)
+plot((log(t.smapfit[,1])), t.points)
 
 save.image("paperrun20120318_NR.Rdata")
